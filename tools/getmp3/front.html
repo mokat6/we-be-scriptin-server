@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>GetMP3 Command Generator</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 500px;
+        margin: auto;
+        padding: 20px;
+        background: #f4f4f4;
+      }
+      h2 {
+        text-align: center;
+      }
+      label {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 8px;
+        margin-top: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        margin-top: 15px;
+        padding: 10px;
+        width: 100%;
+        background: #4caf50;
+        color: white;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      #output {
+        margin-top: 15px;
+        background: #fff;
+        padding: 10px;
+        border-radius: 5px;
+      }
+      /* Toast styles */
+      #toast {
+        visibility: hidden;
+        min-width: 250px;
+        margin-left: -125px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 5px;
+        padding: 10px;
+        position: fixed;
+        left: 50%;
+        bottom: 30px;
+        font-size: 14px;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.5s, bottom 0.5s;
+      }
+      #toast.show {
+        visibility: visible;
+        opacity: 1;
+        bottom: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>GetMP3 Command Generator</h2>
+
+    <form id="cmdForm" action="/getmp3/run">
+
+      <label for="url">YouTube URL (required):</label>
+      <input type="text" id="url" name="url" required />
+
+      <label for="artist">Artist (optional):</label>
+      <input type="text" id="artist" name="artist" />
+
+      <label for="title">Title (optional):</label>
+      <input type="text" id="title" name="title" />
+
+      <label for="year">Year (optional):</label>
+      <input type="text" id="year" name="year" />
+
+      <label for="genre">Genre (optional):</label>
+      <select id="genre" name="genre">
+        <option value="">-- Select genre --</option>
+        <option value="Canto">Canto</option>
+        <option value="chill">chill</option>
+        <option value="Dance">Dance</option>
+        <option value="Game">Game</option>
+        <option value="JP">JP</option>
+        <option value="KR">KR</option>
+        <option value="LoFi">LoFi</option>
+        <option value="Mando">Mando</option>
+        <option value="playlists">playlists</option>
+        <option value="pop">pop</option>
+        <option value="Thug Life">Thug Life</option>
+        <option value="FlashFM">FlashFM</option>
+      </select>
+
+      <label for="outputDir">Output Directory:</label>
+      <input type="text" id="outputDir" name="outputDir" value="./" />
+
+      <!-- Change to submit so it sends data to Node -->
+      <button type="submit">Run Script</button>
+    </form>
+
+    <div id="output" style="white-space: pre-wrap; background:#fff; padding:10px; margin-top:15px;"></div>
+
+
+    <div id="toast">Command copied to clipboard!</div>
+
+    <script>
+      const basePath = "/mnt/c/Users/SweetPotato/Music/";
+
+      // Update outputDir when genre changes
+      document.getElementById("genre").addEventListener("change", function () {
+        const genre = this.value;
+        if (genre) {
+          document.getElementById("outputDir").value = basePath + genre;
+        } else {
+          document.getElementById("outputDir").value = "./";
+        }
+      });
+    </script>
+
+<script>
+const form = document.getElementById("cmdForm");
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData.entries());
+
+  const outputDiv = document.getElementById("output");
+  outputDiv.textContent = "Running script...\n";
+
+  // Use fetch with "text" streaming via ReadableStream
+  const response = await fetch(form.action || "/getmp3/run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    outputDiv.textContent += decoder.decode(value);
+    outputDiv.scrollTop = outputDiv.scrollHeight; // auto-scroll
+  }
+});
+</script>
+
+<!-- yt-dlp version  -->
+<div id="yt-dlp-status" style="
+  position: absolute; 
+  top: 10px; 
+  right: 10px; 
+  background: #fff; 
+  border: 1px solid #ccc; 
+  padding: 10px; 
+  border-radius: 5px; 
+  font-size: 14px;
+">
+  <div><b>yt-dlp:</b> <span id="yt-dlp-version">checking...</span></div>
+  <button id="update-yt-dlp" style="margin-top:5px; padding:5px 10px;">Update</button>
+  <pre id="update-log" style="max-height:150px; overflow:auto; margin-top:5px; font-size:12px;"></pre>
+</div>
+
+
+<script>
+  async function checkVersion() {
+    const res = await fetch("/yt-dlp/version");
+    const text = await res.text();
+    document.getElementById("yt-dlp-version").textContent = text.trim();
+  }
+  
+  async function updateYtDlp() {
+    document.getElementById("update-log").textContent = "Updating yt-dlp...\n";
+    const res = await fetch("/yt-dlp/update", { method: "POST" });
+  
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      document.getElementById("update-log").textContent += decoder.decode(value);
+    }
+    checkVersion(); // refresh version after update
+  }
+  
+  document.getElementById("update-yt-dlp").addEventListener("click", updateYtDlp);
+  checkVersion();
+  </script>
+
+  </body>
+</html>

@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  scripts-server:
+    image: we-be-scriptin
+    container_name: we-be-scriptin-cont   # <--- this sets the container name
+    ports:
+      - "1234:1234"
+    volumes:
+      - /mnt/c/Users/SweetPotato:/mnt/c/Users/SweetPotato
+      - /mnt/d:/mnt/d
