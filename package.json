@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx nodemon server.js"
+    "dev": "npx nodemon server.js",
+    "docker-buildImage": "docker build -t we-be-scriptin-img .",
+    "docker-create-cont-and-run": "docker compose up"
   },
   "author": "",
   "license": "ISC",
